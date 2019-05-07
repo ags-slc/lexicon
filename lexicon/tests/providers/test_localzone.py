@@ -1,13 +1,10 @@
 """Integration tests for Localzone"""
 from unittest import TestCase
+from shutil import copyfile
 
+import os
 import pytest
 from lexicon.tests.providers.integration_tests import IntegrationTests
-
-try:
-    from urllib.request import urlretrieve
-except ImportError:
-    from urllib import urlretrieve
 
 
 # Hook into testing framework by inheriting unittest.TestCase and reuse
@@ -17,12 +14,22 @@ class LocalzoneProviderTests(TestCase, IntegrationTests):
     """Integration tests for Localzone"""
     provider_name = "localzone"
     domain = "example.com"
-    file_uri = "https://raw.githubusercontent.com/ags-slc/localzone/master/tests/zonefiles/db.example.com"  # pylint: disable=line-too-long
-    filename, headers = urlretrieve(file_uri)
+
+    testpath = os.path.dirname(__file__)
+    fixturepath = os.path.join(testpath, "..", "..", "..", "tests", "fixtures")
+    zonefile = os.path.join(fixturepath, "db.example.com")
+    testfile = os.path.join(fixturepath, "test.db.example.com")
+
+    @pytest.fixture(scope="class", autouse=True)
+    def create_testfile(self):
+        """Create a zone file for testing."""
+        copyfile(self.zonefile, self.testfile)
+        yield
+        os.remove(self.testfile)
 
     def _test_parameters_overrides(self):
         options = {
-            "filename": self.filename
+            "filename": self.testfile
         }
 
         return options
